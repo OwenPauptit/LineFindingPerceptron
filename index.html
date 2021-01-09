@@ -1,0 +1,176 @@
+<canvas id="canvas" width="400" height="400"></canvas>
+<br/><br/>
+<label>Show where perceptron thinks line is</label>
+<input type="checkbox" id="showPerceptronLineCheckBox"/>
+<br/><br/>
+<button onclick="trainThisData()">Train using this data</button>
+<br/><br/>
+<button onclick="trainOtherData()">Train using different data</button>
+<br/><br/>
+<button onclick="reguess()">Guess again (without training)</button>
+<br/><br/>
+<button onclick="getNewData()">Get new data</button>
+<br/><br/>
+<label>Number of points in next data set</label>
+<input type="range" min="1" max="500" value="100" id="numPointSlider"/>
+<br/><br/>
+<label>Gradient of line</label>
+<input type="range" min="10" max="300" value="50" id="gradientSlider"/>
+
+<script src="perceptron.js"></script>
+<script src="training.js"></script>
+
+<script>
+
+    let brain;
+    let points = [];
+    let index;
+
+    let NUMPOINTS;
+    let M = 1;
+
+    window.onload = function()
+    {
+        canvas = document.getElementById("canvas");
+        ctx = canvas.getContext("2d");
+        numPointSlider = document.getElementById("numPointSlider");
+        gradientSlider = document.getElementById("gradientSlider");
+        showPLineChBox = document.getElementById("showPerceptronLineCheckBox");
+        NUMPOINTS = numPointSlider.value;
+        M = gradientSlider.value;
+
+
+        brain = new Perceptron();
+
+
+        for (var i = 0; i < NUMPOINTS; i++)
+        {
+            points.push(new Point(canvas.width,canvas.height));
+        }
+
+        index = 0;
+
+        var loop = setInterval(gameLoop,1000/80);
+    }
+
+    gameLoop = function()
+    {
+        NUMPOINTS = numPointSlider.value;
+        var m = M;
+        M = (gradientSlider.value) / 50;
+        if (m != M)
+        {
+            for(var i = 0; i < points.length; i++)
+            {
+                if(points[i].x * M > points[i].y)
+                {
+                    points[i].label = 1
+                }
+                else{
+                    points[i].label = -1
+                }
+            }
+        }
+
+        if (index < points.length)
+        {
+            let inputs = [points[index].x,points[index].y];
+            var guess = brain.guess(inputs);
+            if (guess == points[index].label)
+            {
+                points[index].correct = "true";
+            }
+            else{
+                points[index].correct = "false";
+            }
+            index++;
+        }
+        draw();
+    }
+
+    reguess = function()
+    {
+        index = 0;
+    }
+
+    trainThisData = function()
+    {
+        train(points);
+    }
+
+    trainOtherData = function()
+    {
+        let data = [];
+        for (var i = 0; i < NUMPOINTS; i++)
+        {
+            data.push(new Point(canvas.width,canvas.height));
+        }
+        train(data);
+    }
+
+    getNewData = function()
+    {
+        points = [];
+        for (var i = 0; i < NUMPOINTS; i++)
+        {
+            points.push(new Point(canvas.width,canvas.height));
+        }
+        index = 0;
+    }
+
+    train = function(data)
+    {
+        for (var i = 0; i < data.length; i++)
+        {
+            let inputs = [data[i].x,data[i].y];
+            brain.train(inputs,data[i].label);
+        }
+        index = 0;
+        for (var i = 0; i < points.length; i++)
+        {
+            points[i].correct = "";
+        }
+    }
+
+    draw = function()
+    {
+        ctx.fillStyle = "white";
+        ctx.fillRect(0,0,canvas.width,canvas.height);
+
+        // Actual line
+        var x1 = 0;
+        var x2 = canvas.width;
+        var y1 = M * x1;
+        var y2 = M * x2;
+        ctx.strokeStyle = "black";
+        ctx.beginPath();
+        ctx.moveTo(x1,y1);
+        ctx.lineTo(x2,y2);
+        ctx.stroke();
+
+        if (showPLineChBox.checked)
+        {
+        // Where brain thinks line is
+        var m = -brain.weights[0] / brain.weights[1];
+        y1 = m * x1;
+        y2 = m * x2;
+        ctx.strokeStyle = "blue";
+        ctx.beginPath();
+        ctx.moveTo(x1,y1);
+        ctx.lineTo(x2,y2);
+        ctx.stroke();
+        }
+
+        for(let p of points)
+        {
+            p.draw(ctx);
+        }
+    }
+</script>
+
+<style>
+    #canvas
+    {
+        border: 2px solid black;
+    }
+</style>
